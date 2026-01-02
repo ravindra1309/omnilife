@@ -98,6 +98,47 @@ http://localhost:8080
 
 ---
 
+## 4. Get Transaction History
+
+**Request:**
+- Method: `GET`
+- URL: `http://localhost:8080/api/finance/wallets/{accountNumber}/transactions`
+  - Replace `{accountNumber}` with actual account number (e.g., `2026123456`)
+
+**Expected Response (200 OK):**
+```json
+[
+  {
+    "transactionId": "550e8400-e29b-41d4-a716-446655440000",
+    "type": "DEBIT",
+    "amount": 50.00,
+    "currency": "USD",
+    "timestamp": "2026-01-01T12:05:00",
+    "description": "Transfer to account 2026789012"
+  },
+  {
+    "transactionId": "550e8400-e29b-41d4-a716-446655440000",
+    "type": "CREDIT",
+    "amount": 50.00,
+    "currency": "USD",
+    "timestamp": "2026-01-01T12:05:00",
+    "description": "Transfer from account 2026123456"
+  },
+  {
+    "transactionId": "660e8400-e29b-41d4-a716-446655440001",
+    "type": "DEBIT",
+    "amount": 25.00,
+    "currency": "USD",
+    "timestamp": "2026-01-01T12:03:00",
+    "description": "Transfer to account 2026789012"
+  }
+]
+```
+
+**Note:** Transactions are returned in descending order (most recent first). Each transfer creates two entries: a DEBIT for the sender and a CREDIT for the receiver, linked by the same `transactionId`.
+
+---
+
 ## Error Responses
 
 ### Validation Error (400 Bad Request)
@@ -157,4 +198,13 @@ http://localhost:8080
 5. **Verify Balances:**
    - Check Wallet 1 balance should be: 125.00
    - Check Wallet 2 balance should be: 75.00
+
+6. **View Transaction History for Wallet 1:**
+   - GET `/api/finance/wallets/2026123456/transactions`
+   - Should show DEBIT entries for transfers made from this account
+
+7. **View Transaction History for Wallet 2:**
+   - GET `/api/finance/wallets/2026789012/transactions`
+   - Should show CREDIT entries for transfers received to this account
+
 

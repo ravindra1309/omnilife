@@ -1,6 +1,7 @@
 package com.omnilife.modules.finance.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.omnilife.modules.finance.domain.JournalEntryType;
 import com.omnilife.modules.finance.domain.LedgerAccount;
 import com.omnilife.modules.finance.service.WalletService;
 import jakarta.validation.Valid;
@@ -12,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -63,6 +66,18 @@ public class WalletController {
     public ResponseEntity<Map<String, String>> transfer(@Valid @RequestBody TransferRequest request) {
         walletService.transferFunds(request.getFromUser(), request.getToUser(), request.getAmount());
         return ResponseEntity.ok(Map.of("message", "Transfer successful"));
+    }
+
+    /**
+     * Retrieves the transaction history for a specific wallet account.
+     *
+     * @param accountNumber the account number to retrieve transaction history for
+     * @return a list of TransactionHistoryDto objects representing the account's transaction history
+     */
+    @GetMapping("/wallets/{accountNumber}/transactions")
+    public ResponseEntity<List<TransactionHistoryDto>> getTransactionHistory(@PathVariable String accountNumber) {
+        List<TransactionHistoryDto> history = walletService.getAccountHistory(accountNumber);
+        return ResponseEntity.ok(history);
     }
 
     /**
@@ -171,6 +186,80 @@ public class WalletController {
 
         public void setAmount(BigDecimal amount) {
             this.amount = amount;
+        }
+    }
+
+    /**
+     * DTO for transaction history response.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class TransactionHistoryDto {
+        private String transactionId;
+        private JournalEntryType type;
+        private BigDecimal amount;
+        private String currency;
+        private LocalDateTime timestamp;
+        private String description;
+
+        public TransactionHistoryDto() {
+        }
+
+        public TransactionHistoryDto(String transactionId, JournalEntryType type, BigDecimal amount,
+                                     String currency, LocalDateTime timestamp, String description) {
+            this.transactionId = transactionId;
+            this.type = type;
+            this.amount = amount;
+            this.currency = currency;
+            this.timestamp = timestamp;
+            this.description = description;
+        }
+
+        public String getTransactionId() {
+            return transactionId;
+        }
+
+        public void setTransactionId(String transactionId) {
+            this.transactionId = transactionId;
+        }
+
+        public JournalEntryType getType() {
+            return type;
+        }
+
+        public void setType(JournalEntryType type) {
+            this.type = type;
+        }
+
+        public BigDecimal getAmount() {
+            return amount;
+        }
+
+        public void setAmount(BigDecimal amount) {
+            this.amount = amount;
+        }
+
+        public String getCurrency() {
+            return currency;
+        }
+
+        public void setCurrency(String currency) {
+            this.currency = currency;
+        }
+
+        public LocalDateTime getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(LocalDateTime timestamp) {
+            this.timestamp = timestamp;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
         }
     }
 }

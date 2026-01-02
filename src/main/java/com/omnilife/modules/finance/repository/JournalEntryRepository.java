@@ -1,6 +1,7 @@
 package com.omnilife.modules.finance.repository;
 
 import com.omnilife.modules.finance.domain.JournalEntry;
+import com.omnilife.modules.finance.domain.LedgerAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -21,5 +22,15 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long
      * @return a list of JournalEntry entities with the given transaction ID
      */
     List<JournalEntry> findByTransactionId(String transactionId);
+
+    /**
+     * Finds all journal entries for a specific account, sorted by timestamp in descending order
+     * (most recent first).
+     *
+     * @param account the LedgerAccount to find entries for
+     * @return a list of JournalEntry entities for the account, sorted by timestamp descending
+     */
+    List<JournalEntry> findByAccountOrderByTimestampDesc(LedgerAccount account);
 }
+
 

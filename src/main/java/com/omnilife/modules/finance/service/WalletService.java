@@ -1,5 +1,6 @@
 package com.omnilife.modules.finance.service;
 
+import com.omnilife.modules.finance.api.WalletController;
 import com.omnilife.modules.finance.domain.JournalEntry;
 import com.omnilife.modules.finance.domain.JournalEntryType;
 import com.omnilife.modules.finance.domain.LedgerAccount;
@@ -14,8 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service class for wallet operations including account creation, funding, and transfers.
@@ -157,10 +160,16 @@ public class WalletService {
         }
 
         // Validation: Check if both accounts exist
-        LedgerAccount fromAccount = ledgerAccountRepository.findByAccountNumber(fromAccountNum)
+        // Using pessimistic write lock to prevent race conditions and double spending.
+        // This ensures that when multiple concurrent transfer requests target the same account,
+        // only one transaction can modify the account balance at a time, preventing:
+        // - Double spending (same funds being transferred twice)
+        // - Lost updates (concurrent balance modifications overwriting each other)
+        // - Negative balances (insufficient balance checks passing due to race conditions)
+        LedgerAccount fromAccount = ledgerAccountRepository.findByAccountNumberWithLock(fromAccountNum)
                 .orElseThrow(() -> new AccountNotFoundException("From account not found: " + fromAccountNum));
 
-        LedgerAccount toAccount = ledgerAccountRepository.findByAccountNumber(toAccountNum)
+        LedgerAccount toAccount = ledgerAccountRepository.findByAccountNumberWithLock(toAccountNum)
                 .orElseThrow(() -> new AccountNotFoundException("To account not found: " + toAccountNum));
 
         // Validation: Check if fromAccount has sufficient balance
@@ -204,6 +213,36 @@ public class WalletService {
         // Save both journal entries
         journalEntryRepository.save(debitEntry);
         journalEntryRepository.save(creditEntry);
+    }
+
+    /**
+     * Retrieves the transaction history for a specific account.
+     * Returns all journal entries for the account, sorted by timestamp in descending order
+     * (most recent first).
+     *
+     * @param accountNumber the account number to retrieve history for
+     * @return a list of TransactionHistoryDto objects representing the account's transaction history
+     * @throws AccountNotFoundException if the account is not found
+     */
+    public List<WalletController.TransactionHistoryDto> getAccountHistory(String accountNumber) {
+        // Find the account first to ensure it exists
+        LedgerAccount account = ledgerAccountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
+
+        // Fetch all journal entries for this account, sorted by timestamp descending
+        List<JournalEntry> entries = journalEntryRepository.findByAccountOrderByTimestampDesc(account);
+
+        // Map journal entries to DTOs
+        return entries.stream()
+                .map(entry -> new WalletController.TransactionHistoryDto(
+                        entry.getTransactionId(),
+                        entry.getType(),
+                        entry.getAmount(),
+                        account.getCurrency(),
+                        entry.getTimestamp(),
+                        entry.getDescription()
+                ))
+                .collect(Collectors.toList());
     }
 }
 
