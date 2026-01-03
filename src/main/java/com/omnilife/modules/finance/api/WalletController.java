@@ -8,13 +8,13 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -69,14 +69,19 @@ public class WalletController {
     }
 
     /**
-     * Retrieves the transaction history for a specific wallet account.
+     * Retrieves the transaction history for a specific wallet account with pagination support.
      *
      * @param accountNumber the account number to retrieve transaction history for
-     * @return a list of TransactionHistoryDto objects representing the account's transaction history
+     * @param page the page number (0-indexed, default: 0)
+     * @param size the number of items per page (default: 10)
+     * @return a page of TransactionHistoryDto objects representing the account's transaction history
      */
     @GetMapping("/wallets/{accountNumber}/transactions")
-    public ResponseEntity<List<TransactionHistoryDto>> getTransactionHistory(@PathVariable String accountNumber) {
-        List<TransactionHistoryDto> history = walletService.getAccountHistory(accountNumber);
+    public ResponseEntity<Page<TransactionHistoryDto>> getTransactionHistory(
+            @PathVariable String accountNumber,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<TransactionHistoryDto> history = walletService.getAccountHistory(accountNumber, page, size);
         return ResponseEntity.ok(history);
     }
 
@@ -145,14 +150,14 @@ public class WalletController {
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class TransferRequest {
-        @NotBlank(message = "From user account number is required")
+        @NotBlank(message = "Account ID is required")
         private String fromUser;
         
-        @NotBlank(message = "To user account number is required")
+        @NotBlank(message = "Account ID is required")
         private String toUser;
         
-        @NotNull(message = "Amount is required")
-        @Positive(message = "Amount must be positive")
+        @NotNull
+        @Positive(message = "Transfer amount must be greater than zero")
         private BigDecimal amount;
 
         public TransferRequest() {

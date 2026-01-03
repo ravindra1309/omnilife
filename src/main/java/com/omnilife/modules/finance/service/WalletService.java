@@ -11,6 +11,10 @@ import com.omnilife.modules.finance.exception.InsufficientFundsException;
 import com.omnilife.modules.finance.repository.JournalEntryRepository;
 import com.omnilife.modules.finance.repository.LedgerAccountRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -216,33 +220,36 @@ public class WalletService {
     }
 
     /**
-     * Retrieves the transaction history for a specific account.
-     * Returns all journal entries for the account, sorted by timestamp in descending order
+     * Retrieves the transaction history for a specific account with pagination support.
+     * Returns journal entries for the account, sorted by timestamp in descending order
      * (most recent first).
      *
      * @param accountNumber the account number to retrieve history for
-     * @return a list of TransactionHistoryDto objects representing the account's transaction history
+     * @param page the page number (0-indexed)
+     * @param size the number of items per page
+     * @return a page of TransactionHistoryDto objects representing the account's transaction history
      * @throws AccountNotFoundException if the account is not found
      */
-    public List<WalletController.TransactionHistoryDto> getAccountHistory(String accountNumber) {
+    public Page<WalletController.TransactionHistoryDto> getAccountHistory(String accountNumber, int page, int size) {
         // Find the account first to ensure it exists
         LedgerAccount account = ledgerAccountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
 
-        // Fetch all journal entries for this account, sorted by timestamp descending
-        List<JournalEntry> entries = journalEntryRepository.findByAccountOrderByTimestampDesc(account);
+        // Create pageable with sorting by timestamp descending
+        Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
 
-        // Map journal entries to DTOs
-        return entries.stream()
-                .map(entry -> new WalletController.TransactionHistoryDto(
-                        entry.getTransactionId(),
-                        entry.getType(),
-                        entry.getAmount(),
-                        account.getCurrency(),
-                        entry.getTimestamp(),
-                        entry.getDescription()
-                ))
-                .collect(Collectors.toList());
+        // Fetch journal entries for this account with pagination, sorted by timestamp descending
+        Page<JournalEntry> entriesPage = journalEntryRepository.findByAccountOrderByTimestampDesc(account, pageable);
+
+        // Map journal entries to DTOs and return as a Page
+        return entriesPage.map(entry -> new WalletController.TransactionHistoryDto(
+                entry.getTransactionId(),
+                entry.getType(),
+                entry.getAmount(),
+                account.getCurrency(),
+                entry.getTimestamp(),
+                entry.getDescription()
+        ));
     }
 }
 
