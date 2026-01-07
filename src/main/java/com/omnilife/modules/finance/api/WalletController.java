@@ -1,5 +1,6 @@
 package com.omnilife.modules.finance.api;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.omnilife.modules.finance.domain.JournalEntryType;
 import com.omnilife.modules.finance.domain.LedgerAccount;
@@ -28,6 +29,25 @@ public class WalletController {
 
     public WalletController(WalletService walletService) {
         this.walletService = walletService;
+    }
+
+    /**
+     * Retrieves a wallet by ID.
+     *
+     * @param id the wallet ID
+     * @return the WalletDto
+     */
+    @GetMapping("/wallets/{id}")
+    public ResponseEntity<WalletDto> getWallet(@PathVariable Long id) {
+        LedgerAccount account = walletService.getWalletById(id);
+        WalletDto dto = new WalletDto(
+                account.getId(),
+                account.getAccountNumber(),
+                account.getName(),
+                account.getBalance(),
+                account.getCurrency()
+        );
+        return ResponseEntity.ok(dto);
     }
 
     /**
@@ -71,17 +91,17 @@ public class WalletController {
     /**
      * Retrieves the transaction history for a specific wallet account with pagination support.
      *
-     * @param accountNumber the account number to retrieve transaction history for
+     * @param id the wallet ID to retrieve transaction history for
      * @param page the page number (0-indexed, default: 0)
      * @param size the number of items per page (default: 10)
      * @return a page of TransactionHistoryDto objects representing the account's transaction history
      */
-    @GetMapping("/wallets/{accountNumber}/transactions")
+    @GetMapping("/wallets/{id}/transactions")
     public ResponseEntity<Page<TransactionHistoryDto>> getTransactionHistory(
-            @PathVariable String accountNumber,
+            @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<TransactionHistoryDto> history = walletService.getAccountHistory(accountNumber, page, size);
+        Page<TransactionHistoryDto> history = walletService.getAccountHistoryById(id, page, size);
         return ResponseEntity.ok(history);
     }
 
@@ -191,6 +211,72 @@ public class WalletController {
 
         public void setAmount(BigDecimal amount) {
             this.amount = amount;
+        }
+    }
+
+    /**
+     * DTO for wallet response.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class WalletDto {
+        private Long id;
+        private String accountNumber;
+        private String name;
+        
+        @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+        private BigDecimal balance;
+        
+        private String currency;
+
+        public WalletDto() {
+        }
+
+        public WalletDto(Long id, String accountNumber, String name, BigDecimal balance, String currency) {
+            this.id = id;
+            this.accountNumber = accountNumber;
+            this.name = name;
+            this.balance = balance;
+            this.currency = currency;
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getAccountNumber() {
+            return accountNumber;
+        }
+
+        public void setAccountNumber(String accountNumber) {
+            this.accountNumber = accountNumber;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public BigDecimal getBalance() {
+            return balance;
+        }
+
+        public void setBalance(BigDecimal balance) {
+            this.balance = balance;
+        }
+
+        public String getCurrency() {
+            return currency;
+        }
+
+        public void setCurrency(String currency) {
+            this.currency = currency;
         }
     }
 

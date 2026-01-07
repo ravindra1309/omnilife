@@ -1,6 +1,7 @@
 package com.omnilife.common.exception;
 
 import com.omnilife.modules.finance.exception.AccountNotFoundException;
+import com.omnilife.modules.finance.exception.DuplicateAccountNumberException;
 import com.omnilife.modules.finance.exception.InsufficientFundsException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -91,6 +92,48 @@ public class GlobalExceptionHandler {
         response.put("fieldErrors", fieldErrors);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handles DuplicateAccountNumberException.
+     * Returns HTTP 409 (Conflict).
+     *
+     * @param ex      the exception
+     * @param request the HTTP request
+     * @return error response with HTTP 409 status
+     */
+    @ExceptionHandler(DuplicateAccountNumberException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateAccountNumberException(
+            DuplicateAccountNumberException ex,
+            HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Duplicate Account Number",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    /**
+     * Handles IllegalArgumentException.
+     * Returns HTTP 400 (Bad Request).
+     *
+     * @param ex      the exception
+     * @param request the HTTP request
+     * @return error response with HTTP 400 status
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     /**

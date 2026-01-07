@@ -19,10 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Service class for wallet operations including account creation, funding, and transfers.
@@ -129,6 +127,30 @@ public class WalletService {
     }
 
     /**
+     * Retrieves a wallet by ID.
+     *
+     * @param id the wallet ID
+     * @return the LedgerAccount
+     * @throws AccountNotFoundException if the account is not found
+     */
+    public LedgerAccount getWalletById(Long id) {
+        return ledgerAccountRepository.findById(id)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found with ID: " + id));
+    }
+
+    /**
+     * Retrieves a wallet by account number.
+     *
+     * @param accountNumber the account number
+     * @return the LedgerAccount
+     * @throws AccountNotFoundException if the account is not found
+     */
+    public LedgerAccount getWallet(String accountNumber) {
+        return ledgerAccountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
+    }
+
+    /**
      * Funds a wallet by adding money to the account balance.
      * This is a simple method for testing/seeding money without full double-entry bookkeeping.
      *
@@ -220,20 +242,20 @@ public class WalletService {
     }
 
     /**
-     * Retrieves the transaction history for a specific account with pagination support.
+     * Retrieves the transaction history for a specific account by ID with pagination support.
      * Returns journal entries for the account, sorted by timestamp in descending order
      * (most recent first).
      *
-     * @param accountNumber the account number to retrieve history for
+     * @param id the wallet ID to retrieve history for
      * @param page the page number (0-indexed)
      * @param size the number of items per page
      * @return a page of TransactionHistoryDto objects representing the account's transaction history
      * @throws AccountNotFoundException if the account is not found
      */
-    public Page<WalletController.TransactionHistoryDto> getAccountHistory(String accountNumber, int page, int size) {
+    public Page<WalletController.TransactionHistoryDto> getAccountHistoryById(Long id, int page, int size) {
         // Find the account first to ensure it exists
-        LedgerAccount account = ledgerAccountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
+        LedgerAccount account = ledgerAccountRepository.findById(id)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found with ID: " + id));
 
         // Create pageable with sorting by timestamp descending
         Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
