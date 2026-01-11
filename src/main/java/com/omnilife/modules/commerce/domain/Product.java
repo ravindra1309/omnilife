@@ -1,7 +1,7 @@
 package com.omnilife.modules.commerce.domain;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.math.BigDecimal;
 
@@ -10,26 +10,27 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "products")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "sku", unique = true, nullable = false)
-    private String sku;
-
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", length = 1000)
     private String description;
 
     @Column(name = "price", nullable = false, precision = 19, scale = 2)
     private BigDecimal price;
 
-    @Column(name = "image_url")
-    private String imageUrl;
+    @Column(name = "sku", unique = true, nullable = false, length = 100)
+    private String sku;
 }
 

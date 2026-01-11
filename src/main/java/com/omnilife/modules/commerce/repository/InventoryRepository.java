@@ -1,6 +1,7 @@
 package com.omnilife.modules.commerce.repository;
 
 import com.omnilife.modules.commerce.domain.Inventory;
+import com.omnilife.modules.commerce.domain.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,13 +12,6 @@ import java.util.Optional;
  */
 @Repository
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
-
-    /**
-     * Finds inventory by product ID.
-     *
-     * @param productId the product ID to search for
-     * @return an Optional containing the Inventory if found, empty otherwise
-     */
-    Optional<Inventory> findByProductId(Long productId);
+    Optional<Inventory> findByProduct(Product product);
 }
 

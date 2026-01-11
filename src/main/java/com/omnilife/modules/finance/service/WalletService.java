@@ -168,6 +168,50 @@ public class WalletService {
     }
 
     /**
+     * Debits an amount from an account balance with journal entry recording.
+     * Uses pessimistic locking to prevent race conditions and ensure data consistency.
+     *
+     * @param accountNumber the account number to debit from
+     * @param amount        the amount to debit
+     * @throws AccountNotFoundException  if the account is not found
+     * @throws InsufficientFundsException if the account has insufficient balance
+     */
+    @Transactional
+    public void debit(String accountNumber, BigDecimal amount) {
+        // Find the account with pessimistic lock to prevent race conditions
+        LedgerAccount account = ledgerAccountRepository.findByAccountNumberWithLock(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
+
+        // Check if balance is sufficient
+        if (account.getBalance().compareTo(amount) < 0) {
+            throw new InsufficientFundsException(
+                    String.format("Insufficient balance. Current balance: %s, Required: %s",
+                            account.getBalance(), amount));
+        }
+
+        // Deduct amount from balance
+        account.setBalance(account.getBalance().subtract(amount));
+
+        // Save the updated account
+        ledgerAccountRepository.save(account);
+
+        // Create transaction ID for the journal entry
+        String transactionId = UUID.randomUUID().toString();
+
+        // Create DEBIT journal entry
+        JournalEntry debitEntry = JournalEntry.builder()
+                .transactionId(transactionId)
+                .account(account)
+                .amount(amount)
+                .type(JournalEntryType.DEBIT)
+                .description("Merchant Payment")
+                .build();
+
+        // Save the journal entry
+        journalEntryRepository.save(debitEntry);
+    }
+
+    /**
      * Transfers funds from one account to another with full double-entry bookkeeping.
      * This method is transactional to ensure data consistency.
      *
