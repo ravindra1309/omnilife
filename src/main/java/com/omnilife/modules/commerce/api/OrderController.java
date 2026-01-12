@@ -2,6 +2,7 @@ package com.omnilife.modules.commerce.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.omnilife.modules.commerce.domain.Order;
+import com.omnilife.modules.commerce.dto.OrderSummary;
 import com.omnilife.modules.commerce.service.OrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -10,6 +11,8 @@ import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * REST controller for order operations.
@@ -34,6 +37,18 @@ public class OrderController {
     public ResponseEntity<Order> placeOrder(@Valid @RequestBody OrderRequest request) {
         Order order = orderService.placeOrder(request.getUserId(), request.getProductId());
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
+    }
+
+    /**
+     * Retrieves all orders for a specific user.
+     *
+     * @param userId the user ID (account number) to retrieve orders for
+     * @return a list of OrderSummary DTOs
+     */
+    @GetMapping("/orders/my")
+    public ResponseEntity<List<OrderSummary>> getUserOrders(@RequestParam String userId) {
+        List<OrderSummary> orders = orderService.getUserOrders(userId);
+        return ResponseEntity.ok(orders);
     }
 
     /**
@@ -73,4 +88,5 @@ public class OrderController {
         }
     }
 }
+
 

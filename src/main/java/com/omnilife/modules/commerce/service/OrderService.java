@@ -4,6 +4,7 @@ import com.omnilife.modules.commerce.domain.Inventory;
 import com.omnilife.modules.commerce.domain.Order;
 import com.omnilife.modules.commerce.domain.OrderStatus;
 import com.omnilife.modules.commerce.domain.Product;
+import com.omnilife.modules.commerce.dto.OrderSummary;
 import com.omnilife.modules.commerce.repository.InventoryRepository;
 import com.omnilife.modules.commerce.repository.OrderRepository;
 import com.omnilife.modules.commerce.repository.ProductRepository;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Service class for order operations in the commerce module.
@@ -78,5 +81,32 @@ public class OrderService {
         // Save and Return Order
         return orderRepository.save(order);
     }
+
+    /**
+     * Retrieves all orders for a specific user as order summaries.
+     *
+     * @param userId the user ID (account number) to retrieve orders for
+     * @return a list of OrderSummary DTOs
+     */
+    public List<OrderSummary> getUserOrders(String userId) {
+        List<Order> orders = orderRepository.findByUserIdOrderByCreatedDateDesc(userId);
+        
+        return orders.stream()
+                .map(order -> {
+                    // Look up the Product Name using the productId
+                    Product product = order.getProduct();
+                    String productName = product != null ? product.getName() : "Unknown Product";
+                    
+                    return new OrderSummary(
+                            order.getId(),
+                            productName,
+                            order.getAmountPaid(),
+                            order.getCreatedDate(),
+                            order.getStatus()
+                    );
+                })
+                .collect(Collectors.toList());
+    }
 }
+
 
