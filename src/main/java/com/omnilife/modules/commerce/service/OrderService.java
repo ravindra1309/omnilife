@@ -1,5 +1,6 @@
 package com.omnilife.modules.commerce.service;
 
+import com.omnilife.common.event.OrderPlacedEvent;
 import com.omnilife.modules.commerce.domain.Inventory;
 import com.omnilife.modules.commerce.domain.Order;
 import com.omnilife.modules.commerce.domain.OrderStatus;
@@ -8,7 +9,7 @@ import com.omnilife.modules.commerce.dto.OrderSummary;
 import com.omnilife.modules.commerce.repository.InventoryRepository;
 import com.omnilife.modules.commerce.repository.OrderRepository;
 import com.omnilife.modules.commerce.repository.ProductRepository;
-import com.omnilife.modules.finance.service.WalletService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,16 +26,16 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
     private final OrderRepository orderRepository;
-    private final WalletService walletService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public OrderService(ProductRepository productRepository,
                        InventoryRepository inventoryRepository,
                        OrderRepository orderRepository,
-                       WalletService walletService) {
+                       ApplicationEventPublisher eventPublisher) {
         this.productRepository = productRepository;
         this.inventoryRepository = inventoryRepository;
         this.orderRepository = orderRepository;
-        this.walletService = walletService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -63,23 +64,30 @@ public class OrderService {
         // Price Check: Get the price from Product
         BigDecimal price = product.getPrice();
 
-        // Payment: Call walletService.debit(userId, price)
-        walletService.debit(userId, price);
-
         // Inventory Update: Decrement stock quantity - 1
         inventory.setQuantity(inventory.getQuantity() - 1);
         inventoryRepository.save(inventory);
 
-        // Create Order
+        // Create Order with PENDING status
         Order order = Order.builder()
                 .userId(userId)
                 .product(product)
-                .status(OrderStatus.COMPLETED)
+                .status(OrderStatus.PENDING)
                 .amountPaid(price)
                 .build();
 
-        // Save and Return Order
-        return orderRepository.save(order);
+        // Save the Order
+        Order savedOrder = orderRepository.save(order);
+
+        // Publish OrderPlacedEvent
+        eventPublisher.publishEvent(new OrderPlacedEvent(
+                String.valueOf(savedOrder.getId()),
+                userId,
+                price
+        ));
+
+        // Return the saved Order (it will be PENDING)
+        return savedOrder;
     }
 
     /**
